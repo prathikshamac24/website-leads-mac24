@@ -1,0 +1,56 @@
+steps:
+  # 1. Build the container image using build-time arguments for Firebase configurations.
+  # These correspond to the ARG variables declared in the Dockerfile.
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/mac24-next-app:$COMMIT_SHA'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_API_KEY=$_FIREBASE_API_KEY'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$_FIREBASE_AUTH_DOMAIN'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_PROJECT_ID=$_FIREBASE_PROJECT_ID'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$_FIREBASE_STORAGE_BUCKET'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$_FIREBASE_MESSAGING_SENDER_ID'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_APP_ID=$_FIREBASE_APP_ID'
+      - '.'
+
+  # 2. Push the built image to Container Registry (or Artifact Registry)
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/mac24-next-app:$COMMIT_SHA']
+
+  # 3. Deploy the container to Google Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'mac24-next-app'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/mac24-next-app:$COMMIT_SHA'
+      - '--region'
+      - 'asia-south1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+
+images:
+  - 'gcr.io/$PROJECT_ID/mac24-next-app:$COMMIT_SHA'
+
+# Default placeholder substitutions.
+# You can override these in the Cloud Build Trigger settings in the GCP Console.
+substitutions:
+  _FIREBASE_API_KEY: 'your-api-key'
+  _FIREBASE_AUTH_DOMAIN: 'mac24-leads.firebaseapp.com'
+  _FIREBASE_PROJECT_ID: 'mac24-leads'
+  _FIREBASE_STORAGE_BUCKET: 'mac24-leads.firebasestorage.app'
+  _FIREBASE_MESSAGING_SENDER_ID: '936883009556'
+  _FIREBASE_APP_ID: 'your-app-id'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

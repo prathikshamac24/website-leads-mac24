@@ -1,65 +1,74 @@
-import Image from "next/image";
+"use client";
+
+import { useLenis } from "@/hooks/use-lenis";
+import { Loader } from "@/components/Loader";
+import { Navbar } from "@/components/Navbar";
+import { CustomCursor } from "@/components/CustomCursor";
+import { HeroSection } from "@/components/HeroSection";
+import { SurvivalSection } from "@/components/SurvivalSection";
+import dynamic from "next/dynamic";
+
+const ProblemSection = dynamic(
+  () => import("@/components/ProblemSection").then((m) => m.ProblemSection),
+  { loading: () => <div className="min-h-screen bg-black" /> }
+);
+const SystemSection = dynamic(
+  () => import("@/components/SystemSection").then((m) => m.SystemSection),
+  { loading: () => <div className="min-h-[50vh] bg-black" /> }
+);
+const JourneySection = dynamic(
+  () => import("@/components/JourneySection").then((m) => m.JourneySection),
+  { loading: () => <div className="min-h-screen bg-black" /> }
+);
+const TestimonialsSection = dynamic(
+  () => import("@/components/TestimonialsSection").then((m) => m.TestimonialsSection),
+  { loading: () => <div className="min-h-[60vh] bg-black" /> }
+);
+const QualificationFunnel = dynamic(
+  () => import("@/components/QualificationFunnel").then((m) => m.QualificationFunnel),
+  { loading: () => <div className="min-h-screen bg-black" /> }
+);
+import { Footer } from "@/components/Footer";
 
 export default function Home() {
+  useLenis();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="relative w-full bg-brand text-brand overflow-hidden">
+      {/* Fixed Background Image */}
+      <div
+        className="fixed inset-0 w-full h-full pointer-events-none -z-20 bg-cover bg-center bg-no-repeat opacity-65"
+        style={{ backgroundImage: "url('/background.jpg')" }}
+      />
+
+      {/* Background Floating Gradients */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[10%] left-[-10%] w-[350px] h-[350px] xs:w-[500px] xs:h-[500px] rounded-full bg-salmon/14 blur-[100px] sm:blur-[150px] animate-float-1" />
+        <div className="absolute top-[35%] right-[-12%] w-[400px] h-[400px] xs:w-[600px] xs:h-[600px] rounded-full bg-teal-deep/8 blur-[120px] sm:blur-[180px] animate-float-2" />
+        <div className="absolute top-[60%] left-[-5%] w-[350px] h-[350px] xs:w-[550px] xs:h-[550px] rounded-full bg-salmon/12 blur-[110px] sm:blur-[160px] animate-float-3" />
+        <div className="absolute top-[78%] right-[-5%] w-[380px] h-[380px] xs:w-[580px] xs:h-[580px] rounded-full bg-teal-deep/9 blur-[130px] sm:blur-[190px] animate-float-1" />
+        <div className="absolute top-[90%] left-[8%] w-[320px] h-[320px] xs:w-[480px] xs:h-[480px] rounded-full bg-salmon/10 blur-[100px] sm:blur-[140px] animate-float-2" />
+      </div>
+
+      <Loader />
+      <Navbar />
+      <CustomCursor />
+      <div className="grain animate-pulse" style={{ animationDuration: '4s' }} />
+      
+      <div className="relative bg-neutral-950 z-10 overflow-hidden">
+        <div className="relative z-10">
+          <HeroSection />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+
+      <SurvivalSection />
+
+      <ProblemSection />
+      <SystemSection />
+      <JourneySection />
+      <TestimonialsSection />
+      <QualificationFunnel />
+      <Footer />
+    </main>
   );
 }

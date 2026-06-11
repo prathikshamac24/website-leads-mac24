@@ -1,0 +1,38 @@
+# Node modules
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Next.js build output
+.next
+out
+
+# Version control
+.git
+.gitignore
+.github
+
+# Local configuration and environment variables
+# Do not bake credentials or local secrets into the Docker image.
+.env
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# OS files
+.DS_Store
+
+# Documentation and IDE configuration
+README.md
+CLAUDE.md
+AGENTS.md
+.vscode
+.idea

@@ -1,0 +1,505 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { saveLead } from "@/lib/savedLeads";
+
+function Typewriter({ text, className = "", speed = 40, startDelay = 0 }: { text: string; className?: string; speed?: number; startDelay?: number }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let id: ReturnType<typeof setTimeout>;
+    const start = setTimeout(() => {
+      const tick = () => {
+        setN((v) => {
+          if (v >= text.length) return v;
+          id = setTimeout(tick, speed);
+          return v + 1;
+        });
+      };
+      tick();
+    }, startDelay);
+    return () => {
+      clearTimeout(start);
+      clearTimeout(id);
+    };
+  }, [text, speed, startDelay]);
+  return (
+    <h3 className={className}>
+      {text.slice(0, n)}
+      <span className="inline-block w-[2px] h-[0.9em] align-[-0.1em] bg-salmon ml-1 animate-pulse" style={{ opacity: n < text.length ? 1 : 0 }} />
+    </h3>
+  );
+}
+
+function TypewriterButton({ text, className = "", onClick, delay = 0, speed = 30 }: { text: string; className?: string; onClick: () => void; delay?: number; speed?: number }) {
+  const [n, setN] = useState(0);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), delay);
+    return () => clearTimeout(t);
+  }, [delay]);
+  useEffect(() => {
+    if (!visible) return;
+    let id: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      setN((v) => {
+        if (v >= text.length) return v;
+        id = setTimeout(tick, speed);
+        return v + 1;
+      });
+    };
+    tick();
+    return () => clearTimeout(id);
+  }, [visible, text, speed]);
+  return (
+    <button
+      onClick={onClick}
+      className={className}
+      style={{ opacity: visible ? 1 : 0, transition: "opacity .4s ease" }}
+    >
+      {text.slice(0, n)}
+      {visible && n < text.length && (
+        <span className="inline-block w-[2px] h-[1em] align-middle bg-current ml-0.5" />
+      )}
+    </button>
+  );
+}
+
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 99; // 99 = soft exit
+
+const fade = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
+};
+
+export function QualificationFunnel() {
+  const [step, setStep] = useState<Step>(1);
+  const [subStep, setSubStep] = useState(1); // 1 to 2 stages (Goals/Occupation/Logistics are removed)
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    age: "",
+    struggle: "",
+    timing: "",
+  });
+
+  const exit = () => setStep(99);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveLead({
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+    });
+    setSubmitted(true);
+  };
+
+  // Compute precise continuous progress percentages
+  const getProgressPercentage = () => {
+    if (submitted) return 100;
+    if (step === 99) return 0;
+    if (step === 1) return 15;
+    if (step === 2) return 30;
+    if (step === 3) return 48;
+    if (step === 4) return 66;
+    if (step === 5) {
+      return 66 + subStep * 16; // Stretches from 82% to 98%
+    }
+    return 0;
+  };
+
+  // Validation helper for Step 5 sub-stages
+  const isSubStepValid = (stage: number) => {
+    if (stage === 1) return form.name.trim() !== "" && form.age.trim() !== "";
+    if (stage === 2) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return form.phone.trim().length >= 8 && emailRegex.test(form.email);
+    }
+    return true;
+  };
+
+  return (
+    <section id="funnel" className="relative min-h-screen w-full overflow-hidden bg-neutral-950 py-24 md:py-36 z-20">
+      {/* Background neon ambient highlight overlays */}
+      <div className="absolute top-10 left-1/4 w-[400px] h-[400px] bg-salmon/5 blur-[130px] rounded-full pointer-events-none z-0" />
+      <div className="absolute bottom-10 right-1/4 w-[400px] h-[400px] bg-salmon/5 blur-[130px] rounded-full pointer-events-none z-0" />
+
+      {/* Modern, glow-in-the-dark progress bar */}
+      {!submitted && step !== 99 && (
+        <div className="absolute top-10 left-0 right-0 max-w-xl mx-auto px-6 z-20 flex flex-col gap-2">
+          <div className="flex justify-between text-[9px] font-mono tracking-widest text-white/40 uppercase">
+            <span>METABOLIC PROFILE DECK</span>
+            <span className="text-salmon font-bold">{Math.round(getProgressPercentage())}% COMPLETE</span>
+          </div>
+          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
+            <div
+              style={{ width: `${getProgressPercentage()}%` }}
+              className="h-full bg-salmon shadow-[0_0_12px_rgba(255,122,89,0.6)] rounded-full transition-all duration-700 ease-out"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="mx-auto flex min-h-[75vh] max-w-3xl items-center justify-center px-6 relative z-10">
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <motion.div
+              key="s1"
+              {...fade}
+              className="w-full text-center relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.03] backdrop-blur-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] p-8 sm:p-16 max-w-xl mx-auto"
+            >
+              {/* Card top border flare */}
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-salmon/40 via-salmon to-salmon/40" />
+              
+              <Typewriter
+                text="Are you genuinely ready to change your lifestyle?"
+                className="font-display text-2xl leading-snug xs:text-3xl sm:text-4xl uppercase text-white tracking-wide font-extrabold"
+                speed={32}
+              />
+              <div className="mt-12 flex flex-col items-center gap-4">
+                <TypewriterButton
+                  text="Yes, I'm ready to rebuild"
+                  className="w-full max-w-md py-4 rounded-2xl bg-salmon text-white hover:bg-salmon/90 shadow-[0_0_20px_rgba(255,122,89,0.2)] hover:shadow-[0_0_30px_rgba(255,122,89,0.35)] transition-all duration-300 transform active:scale-[0.98] font-bold text-xs uppercase tracking-wider cursor-pointer"
+                  onClick={() => setStep(2)}
+                  delay={1400}
+                />
+                <TypewriterButton
+                  text="I'm still unsure"
+                  className="text-xs text-white/40 font-mono tracking-widest hover:text-salmon transition-colors duration-200"
+                  onClick={exit}
+                  delay={2600}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div
+              key="s2"
+              {...fade}
+              className="w-full text-center relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.03] backdrop-blur-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] p-8 sm:p-16 max-w-xl mx-auto"
+            >
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-salmon/40 via-salmon to-salmon/40" />
+              <h3 className="font-display text-2xl leading-snug xs:text-3xl sm:text-4xl uppercase text-white tracking-wide font-extrabold">
+                Can you commit the next 90 days to rebuilding yourself?
+              </h3>
+              <p className="mt-5 text-xs text-white/50 font-mono tracking-wider">
+                Results only happen when consistency exists.
+              </p>
+              <div className="mt-12 flex flex-col items-center gap-4">
+                <button
+                  onClick={() => setStep(3)}
+                  className="w-full max-w-md py-4 rounded-2xl bg-salmon text-white hover:bg-salmon/90 shadow-[0_0_20px_rgba(255,122,89,0.2)] hover:shadow-[0_0_30px_rgba(255,122,89,0.35)] transition-all duration-300 transform active:scale-[0.98] font-bold text-xs uppercase tracking-wider cursor-pointer"
+                >
+                  Yes, I Commit
+                </button>
+                <button
+                  onClick={exit}
+                  className="text-xs text-white/40 font-mono tracking-widest hover:text-salmon transition-colors duration-200 cursor-pointer"
+                >
+                  No, I cannot commit
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 3 && (
+            <motion.div
+              key="s3"
+              {...fade}
+              className="w-full text-center relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.03] backdrop-blur-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] p-8 sm:p-16 max-w-xl mx-auto"
+            >
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-salmon/40 via-salmon to-salmon/40" />
+              <p className="label-mono text-salmon text-[10px] tracking-[0.25em] font-bold uppercase drop-shadow-[0_0_8px_rgba(255,122,89,0.3)]">
+                BEFORE YOU CONTINUE
+              </p>
+              <h3 className="mt-6 font-display text-xl leading-snug xs:text-2xl sm:text-3xl uppercase text-white tracking-wide font-extrabold">
+                MAC24 is a premium transformation system designed only for serious individuals.
+              </h3>
+              <p className="mx-auto mt-5 max-w-md text-xs text-white/60 sm:text-sm leading-relaxed">
+                This journey requires personal investment, discipline, and absolute commitment. We only work with people who are truly ready to invest in their health identity.
+              </p>
+              <div className="mt-12 flex flex-col items-center gap-4">
+                <button
+                  onClick={() => setStep(4)}
+                  className="w-full max-w-md py-4 rounded-2xl bg-salmon text-white hover:bg-salmon/90 shadow-[0_0_20px_rgba(255,122,89,0.2)] hover:shadow-[0_0_30px_rgba(255,122,89,0.35)] transition-all duration-300 transform active:scale-[0.98] font-bold text-xs uppercase tracking-wider cursor-pointer"
+                >
+                  I Understand & Accept
+                </button>
+                <button
+                  onClick={exit}
+                  className="text-xs text-white/40 font-mono tracking-widest hover:text-salmon transition-colors duration-200 cursor-pointer"
+                >
+                  I'm not ready yet
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 4 && <Screen4 onContinue={() => setStep(5)} />}
+
+          {step === 5 && !submitted && (
+            <motion.div
+              key="s5"
+              {...fade}
+              className="w-full max-w-xl mx-auto relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.03] backdrop-blur-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] p-8 sm:p-12"
+            >
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-salmon/40 via-salmon to-salmon/40" />
+
+              {/* Progress Indicator for Sub-Steps */}
+              <div className="flex justify-between items-center mb-6">
+                <span className="text-[9px] font-mono tracking-widest text-salmon font-bold">
+                  ASSESSMENT STAGE {subStep} OF 2
+                </span>
+                <span className="text-[10px] font-mono text-white/30">
+                  {subStep === 1 && "Identity Details"}
+                  {subStep === 2 && "Contact Channels"}
+                </span>
+              </div>
+
+              <form onSubmit={submit} className="space-y-6">
+                <AnimatePresence mode="wait">
+                  {/* Stage 1: Basic Identity (Name & Age) */}
+                  {subStep === 1 && (
+                    <motion.div
+                      key="sub1"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-5"
+                    >
+                      <h4 className="font-display text-xl uppercase text-white tracking-wider font-extrabold mb-4">
+                        Let's start with your identity.
+                      </h4>
+                      <Field
+                        label="Full Name"
+                        value={form.name}
+                        onChange={(v) => setForm({ ...form, name: v })}
+                        required
+                        placeholder="e.g. Rahul Sharma"
+                      />
+                      <Field
+                        label="Age"
+                        type="number"
+                        value={form.age}
+                        onChange={(v) => setForm({ ...form, age: v })}
+                        required
+                        placeholder="e.g. 32"
+                      />
+                    </motion.div>
+                  )}
+
+                  {/* Stage 2: Contact Channels (Phone & Email) */}
+                  {subStep === 2 && (
+                    <motion.div
+                      key="sub2"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-5"
+                    >
+                      <h4 className="font-display text-xl uppercase text-white tracking-wider font-extrabold mb-4">
+                        How can we secure your report?
+                      </h4>
+                      <Field
+                        label="Phone Number"
+                        type="tel"
+                        value={form.phone}
+                        onChange={(v) => setForm({ ...form, phone: v })}
+                        required
+                        placeholder="e.g. +91 98765 43210"
+                      />
+                      <Field
+                        label="Email ID"
+                        type="email"
+                        value={form.email}
+                        onChange={(v) => setForm({ ...form, email: v })}
+                        required
+                        placeholder="e.g. rahul@outlook.com"
+                      />
+                    </motion.div>
+                  )}
+
+
+                </AnimatePresence>
+
+                {/* Multistage Form Navigation Bar */}
+                <div className="flex gap-4 pt-4 border-t border-white/5">
+                  {subStep > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setSubStep((prev) => prev - 1)}
+                      className="flex items-center gap-1.5 px-6 py-4 rounded-2xl border border-white/15 text-white/70 hover:text-white hover:bg-white/5 active:scale-95 transition-all duration-200 cursor-pointer text-xs font-bold uppercase tracking-wider"
+                    >
+                      <ChevronLeft className="h-4 w-4" /> Back
+                    </button>
+                  )}
+
+                  {subStep < 2 ? (
+                    <button
+                      type="button"
+                      disabled={!isSubStepValid(subStep)}
+                      onClick={() => setSubStep((prev) => prev + 1)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-4 rounded-2xl bg-salmon text-white disabled:opacity-40 disabled:pointer-events-none hover:bg-salmon/90 shadow-[0_0_20px_rgba(255,122,89,0.2)] active:scale-95 transition-all duration-200 cursor-pointer text-xs font-bold uppercase tracking-wider"
+                    >
+                      Continue <ChevronRight className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={!isSubStepValid(2)}
+                      className="flex-1 py-4 rounded-2xl bg-salmon text-white disabled:opacity-40 disabled:pointer-events-none hover:bg-salmon/90 shadow-[0_0_20px_rgba(255,122,89,0.3)] active:scale-[0.98] transition-all duration-200 cursor-pointer text-xs font-bold uppercase tracking-wider"
+                    >
+                      Apply For Assessment →
+                    </button>
+                  )}
+                </div>
+
+                <p className="text-center text-[10px] text-white/30 tracking-wider">
+                  No spam. Strictly confidential. We review and respond within 2 hours.
+                </p>
+              </form>
+            </motion.div>
+          )}
+
+          {submitted && (
+            <motion.div
+              key="done"
+              {...fade}
+              className="w-full text-center relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.03] backdrop-blur-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] p-8 sm:p-16 max-w-xl mx-auto"
+            >
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-salmon/40 via-salmon to-salmon/40" />
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 18 }}
+                className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-salmon shadow-[0_0_15px_rgba(255,122,89,0.2)] bg-salmon/5"
+              >
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-salmon">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+              </motion.div>
+              <h3 className="mt-10 font-display text-2xl uppercase text-white tracking-wide font-extrabold">
+                Your Assessment Request Has Been Secured
+              </h3>
+              <p className="mt-4 text-xs text-white/50 font-mono tracking-wider max-w-md mx-auto leading-relaxed">
+                We have initialized your metabolic index profile. Our lifestyle architects will review your inputs and contact you within 2 hours via the provided coordinates.
+              </p>
+            </motion.div>
+          )}
+
+          {step === 99 && (
+            <motion.div
+              key="exit"
+              {...fade}
+              className="w-full text-center relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.03] backdrop-blur-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] p-8 sm:p-16 max-w-xl mx-auto"
+            >
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-salmon/40 via-salmon to-salmon/40" />
+              <p className="font-display text-xl uppercase tracking-wider text-white/70 font-bold leading-relaxed">
+                Come back when you are ready
+                <br />
+                to prioritize yourself.
+              </p>
+              <button
+                onClick={() => {
+                  setStep(1);
+                  setSubStep(1);
+                  setSubmitted(false);
+                }}
+                className="mt-8 text-xs text-salmon font-mono tracking-widest underline underline-offset-4 hover:text-salmon/80 transition-colors duration-200 cursor-pointer"
+              >
+                Restart Assessment
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </section>
+  );
+}
+
+function Screen4({ onContinue }: { onContinue: () => void }) {
+  return (
+    <motion.div
+      key="s4"
+      {...fade}
+      className="w-full text-center relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.03] backdrop-blur-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] p-8 sm:p-16 max-w-xl mx-auto"
+    >
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-salmon/40 via-salmon to-salmon/40" />
+      <div className="mx-auto flex h-24 w-24 items-center justify-center">
+        <div className="h-10 w-10 rounded-full bg-salmon/30 breathe sm:h-12 sm:w-12 shadow-[0_0_20px_rgba(255,122,89,0.3)] animate-pulse" />
+      </div>
+      <motion.p
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6, duration: 0.8 }}
+        className="mt-8 font-display text-xl uppercase tracking-wider text-white font-bold leading-snug"
+      >
+        One day you'll wish you had started earlier.
+      </motion.p>
+      <motion.p
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 2.2, duration: 0.8 }}
+        className="mt-6 font-display text-xl uppercase tracking-wider text-salmon font-extrabold leading-snug"
+      >
+        That day is already getting closer.
+      </motion.p>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 3.4, duration: 0.6 }}
+        className="mt-12"
+      >
+        <button
+          onClick={onContinue}
+          className="w-full max-w-md py-4 rounded-2xl bg-salmon text-white hover:bg-salmon/90 shadow-[0_0_20px_rgba(255,122,89,0.2)] hover:shadow-[0_0_30px_rgba(255,122,89,0.35)] transition-all duration-300 transform active:scale-[0.98] font-bold text-xs uppercase tracking-wider cursor-pointer"
+        >
+          YES, I'M READY
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+  required,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  required?: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="label-mono text-salmon text-[10px] tracking-widest block font-bold mb-2">
+        {label}
+      </label>
+      <div className="relative rounded-2xl border border-white/10 bg-neutral-950/40 focus-within:border-salmon/40 focus-within:shadow-[0_0_20px_rgba(255,122,89,0.15)] transition-all duration-300">
+        <input
+          type={type}
+          required={required}
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-transparent px-5 py-4 text-white text-sm outline-none transition placeholder-white/20"
+        />
+      </div>
+    </div>
+  );
+}
