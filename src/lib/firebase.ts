@@ -4,13 +4,13 @@ import { getAnalytics, Analytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBILSaCD2a-x7AEG9oE-AADUNrT4zgMtmw",
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "website-leads-460af.firebaseapp.com",
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "website-leads-460af",
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "website-leads-460af.firebasestorage.app",
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "979978301465",
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:979978301465:web:93eb984c91f7bf08faba88",
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-C3L34HVQT7"
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyCyg4IMeVSAX0ac8eKwdqK_oclCrx3jOcw",
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "website-leads-mac24.firebaseapp.com",
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "website-leads-mac24",
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "website-leads-mac24.firebasestorage.app",
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "7863101051",
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:7863101051:web:bf06d62ce9086fc47b64de",
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-1YQT2K4QMF"
 };
 
 // Initialize Firebase App (prevent duplicate initialization in hot-reloading/SSR)
