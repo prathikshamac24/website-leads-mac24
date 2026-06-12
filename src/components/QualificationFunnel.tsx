@@ -98,18 +98,90 @@ export function QualificationFunnel() {
 
   const exit = () => setStep(99);
 
+  const handleNameChange = (val: string) => {
+    // Only allow letters and spaces
+    const sanitized = val.replace(/[^a-zA-Z\s]/g, "");
+    setForm((prev) => ({ ...prev, name: sanitized }));
+    
+    if (sanitized.trim().length === 0) {
+      setErrors((prev) => ({ ...prev, name: "Name is required." }));
+    } else if (sanitized.trim().length < 2) {
+      setErrors((prev) => ({ ...prev, name: `Name must be at least 2 characters (currently ${sanitized.trim().length}/2).` }));
+    } else {
+      setErrors((prev) => ({ ...prev, name: "" }));
+    }
+  };
+
+  const handleAgeChange = (val: string) => {
+    // Only allow digits
+    const sanitized = val.replace(/[^0-9]/g, "");
+    setForm((prev) => ({ ...prev, age: sanitized }));
+    
+    if (sanitized.trim().length === 0) {
+      setErrors((prev) => ({ ...prev, age: "Age is required." }));
+      return;
+    }
+    
+    const ageNum = Number(sanitized);
+    if (isNaN(ageNum) || ageNum < 6) {
+      setErrors((prev) => ({ ...prev, age: "Age must be 6 or above." }));
+    } else if (ageNum > 100) {
+      setErrors((prev) => ({ ...prev, age: "Please enter a realistic age (100 or below)." }));
+    } else {
+      setErrors((prev) => ({ ...prev, age: "" }));
+    }
+  };
+
+  const handlePhoneChange = (val: string) => {
+    // Only allow digits
+    const sanitized = val.replace(/[^0-9]/g, "");
+    // Limit strictly to 10 digits
+    const limited = sanitized.slice(0, 10);
+    setForm((prev) => ({ ...prev, phone: limited }));
+    
+    if (limited.length === 0) {
+      setErrors((prev) => ({ ...prev, phone: "Phone number is required." }));
+    } else if (limited.length < 10) {
+      setErrors((prev) => ({ ...prev, phone: `Phone number must be exactly 10 digits (currently ${limited.length}/10).` }));
+    } else {
+      setErrors((prev) => ({ ...prev, phone: "" }));
+    }
+  };
+
+  const handleEmailChange = (val: string) => {
+    setForm((prev) => ({ ...prev, email: val }));
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (val.trim().length === 0) {
+      setErrors((prev) => ({ ...prev, email: "Email is required." }));
+    } else if (!emailRegex.test(val)) {
+      setErrors((prev) => ({ ...prev, email: "Please enter a valid email address." }));
+    } else {
+      setErrors((prev) => ({ ...prev, email: "" }));
+    }
+  };
+
   const validateSubStep1 = () => {
     const tempErrors = { name: "", age: "" };
     let isValid = true;
     
-    if (form.name.trim().length < 2) {
+    if (form.name.trim().length === 0) {
+      tempErrors.name = "Name is required.";
+      isValid = false;
+    } else if (form.name.trim().length < 2) {
       tempErrors.name = "Name must be at least 2 characters.";
       isValid = false;
     }
     
     const ageNum = Number(form.age);
-    if (!form.age || isNaN(ageNum) || ageNum < 12 || ageNum > 100) {
-      tempErrors.age = "Please enter a valid age between 12 and 100.";
+    if (!form.age) {
+      tempErrors.age = "Age is required.";
+      isValid = false;
+    } else if (isNaN(ageNum) || ageNum < 6) {
+      tempErrors.age = "Age must be 6 or above.";
+      isValid = false;
+    } else if (ageNum > 100) {
+      tempErrors.age = "Please enter a realistic age (100 or below).";
       isValid = false;
     }
     
@@ -121,17 +193,19 @@ export function QualificationFunnel() {
     const tempErrors = { phone: "", email: "" };
     let isValid = true;
     
-    // Clean and validate phone number (allow +, spaces, hyphens, and parentheses)
-    const phoneClean = form.phone.replace(/[\s\-()]/g, "");
-    const phoneRegex = /^\+?[0-9]{8,15}$/;
-    if (!phoneRegex.test(phoneClean)) {
-      tempErrors.phone = "Please enter a valid phone number (8-15 digits).";
+    if (form.phone.trim().length === 0) {
+      tempErrors.phone = "Phone number is required.";
+      isValid = false;
+    } else if (form.phone.length < 10) {
+      tempErrors.phone = "Phone number must be exactly 10 digits.";
       isValid = false;
     }
     
-    // Validate email address
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
+    if (form.email.trim().length === 0) {
+      tempErrors.email = "Email is required.";
+      isValid = false;
+    } else if (!emailRegex.test(form.email)) {
       tempErrors.email = "Please enter a valid email address.";
       isValid = false;
     }
@@ -152,7 +226,7 @@ export function QualificationFunnel() {
     const isSuccess = await saveLead({
       name: form.name,
       email: form.email,
-      phone: form.phone,
+      phone: `+91 ${form.phone}`,
     });
     setIsSubmitting(false);
     
@@ -334,10 +408,7 @@ export function QualificationFunnel() {
                       <Field
                         label="Full Name"
                         value={form.name}
-                        onChange={(v) => {
-                          setForm({ ...form, name: v });
-                          if (errors.name) setErrors({ ...errors, name: "" });
-                        }}
+                        onChange={handleNameChange}
                         required
                         placeholder="e.g. Rahul Sharma"
                         error={errors.name}
@@ -346,10 +417,7 @@ export function QualificationFunnel() {
                         label="Age"
                         type="number"
                         value={form.age}
-                        onChange={(v) => {
-                          setForm({ ...form, age: v });
-                          if (errors.age) setErrors({ ...errors, age: "" });
-                        }}
+                        onChange={handleAgeChange}
                         required
                         placeholder="e.g. 32"
                         error={errors.age}
@@ -374,22 +442,18 @@ export function QualificationFunnel() {
                         label="Phone Number"
                         type="tel"
                         value={form.phone}
-                        onChange={(v) => {
-                          setForm({ ...form, phone: v });
-                          if (errors.phone) setErrors({ ...errors, phone: "" });
-                        }}
+                        onChange={handlePhoneChange}
                         required
-                        placeholder="e.g. +91 98765 43210"
+                        placeholder="98765 43210"
                         error={errors.phone}
+                        prefix="+91"
+                        maxLength={10}
                       />
                       <Field
                         label="Email ID"
                         type="email"
                         value={form.email}
-                        onChange={(v) => {
-                          setForm({ ...form, email: v });
-                          if (errors.email) setErrors({ ...errors, email: "" });
-                        }}
+                        onChange={handleEmailChange}
                         required
                         placeholder="e.g. rahul@outlook.com"
                         error={errors.email}
@@ -564,6 +628,8 @@ function Field({
   required,
   placeholder,
   error,
+  prefix,
+  maxLength,
 }: {
   label: string;
   value: string;
@@ -572,24 +638,34 @@ function Field({
   required?: boolean;
   placeholder?: string;
   error?: string;
+  prefix?: string;
+  maxLength?: number;
 }) {
   return (
     <div>
       <label className="label-mono text-salmon text-[10px] tracking-widest block font-bold mb-2">
         {label}
       </label>
-      <div className={`relative rounded-2xl border bg-neutral-950/40 transition-all duration-300 ${
+      <div className={`relative flex rounded-2xl border bg-neutral-950/40 transition-all duration-300 ${
         error 
-          ? "border-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.15)]" 
+          ? "border-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.15)] animate-shake" 
           : "border-white/10 focus-within:border-salmon/40 focus-within:shadow-[0_0_20px_rgba(255,122,89,0.15)]"
       }`}>
+        {prefix && (
+          <span className="flex items-center pl-5 pr-1 text-white/50 text-sm font-mono select-none font-bold">
+            {prefix}
+          </span>
+        )}
         <input
           type={type}
           required={required}
           value={value}
           placeholder={placeholder}
+          maxLength={maxLength}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-transparent px-5 py-4 text-white text-sm outline-none transition placeholder-white/20"
+          className={`w-full bg-transparent py-4 text-white text-sm outline-none transition placeholder-white/20 ${
+            prefix ? "pl-1 pr-5" : "px-5"
+          }`}
         />
       </div>
       {error && (
