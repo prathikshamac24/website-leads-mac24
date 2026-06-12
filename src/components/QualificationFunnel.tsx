@@ -87,17 +87,80 @@ export function QualificationFunnel() {
     struggle: "",
     timing: "",
   });
+  const [errors, setErrors] = useState({
+    name: "",
+    age: "",
+    phone: "",
+    email: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const exit = () => setStep(99);
 
+  const validateSubStep1 = () => {
+    const tempErrors = { name: "", age: "" };
+    let isValid = true;
+    
+    if (form.name.trim().length < 2) {
+      tempErrors.name = "Name must be at least 2 characters.";
+      isValid = false;
+    }
+    
+    const ageNum = Number(form.age);
+    if (!form.age || isNaN(ageNum) || ageNum < 12 || ageNum > 100) {
+      tempErrors.age = "Please enter a valid age between 12 and 100.";
+      isValid = false;
+    }
+    
+    setErrors(prev => ({ ...prev, ...tempErrors }));
+    return isValid;
+  };
+
+  const validateSubStep2 = () => {
+    const tempErrors = { phone: "", email: "" };
+    let isValid = true;
+    
+    // Clean and validate phone number (allow +, spaces, hyphens, and parentheses)
+    const phoneClean = form.phone.replace(/[\s\-()]/g, "");
+    const phoneRegex = /^\+?[0-9]{8,15}$/;
+    if (!phoneRegex.test(phoneClean)) {
+      tempErrors.phone = "Please enter a valid phone number (8-15 digits).";
+      isValid = false;
+    }
+    
+    // Validate email address
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      tempErrors.email = "Please enter a valid email address.";
+      isValid = false;
+    }
+    
+    setErrors(prev => ({ ...prev, ...tempErrors }));
+    return isValid;
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await saveLead({
+    setSubmitError(null);
+    
+    if (!validateSubStep2()) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    const isSuccess = await saveLead({
       name: form.name,
       email: form.email,
       phone: form.phone,
     });
-    setSubmitted(true);
+    setIsSubmitting(false);
+    
+    if (isSuccess) {
+      setSubmitted(true);
+    } else {
+      setSubmitError("Failed to submit assessment. Please check your network connection and try again.");
+    }
   };
 
   // Compute precise continuous progress percentages
@@ -112,16 +175,6 @@ export function QualificationFunnel() {
       return 66 + subStep * 16; // Stretches from 82% to 98%
     }
     return 0;
-  };
-
-  // Validation helper for Step 5 sub-stages
-  const isSubStepValid = (stage: number) => {
-    if (stage === 1) return form.name.trim() !== "" && form.age.trim() !== "";
-    if (stage === 2) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return form.phone.trim().length >= 8 && emailRegex.test(form.email);
-    }
-    return true;
   };
 
   return (
@@ -281,17 +334,25 @@ export function QualificationFunnel() {
                       <Field
                         label="Full Name"
                         value={form.name}
-                        onChange={(v) => setForm({ ...form, name: v })}
+                        onChange={(v) => {
+                          setForm({ ...form, name: v });
+                          if (errors.name) setErrors({ ...errors, name: "" });
+                        }}
                         required
                         placeholder="e.g. Rahul Sharma"
+                        error={errors.name}
                       />
                       <Field
                         label="Age"
                         type="number"
                         value={form.age}
-                        onChange={(v) => setForm({ ...form, age: v })}
+                        onChange={(v) => {
+                          setForm({ ...form, age: v });
+                          if (errors.age) setErrors({ ...errors, age: "" });
+                        }}
                         required
                         placeholder="e.g. 32"
+                        error={errors.age}
                       />
                     </motion.div>
                   )}
@@ -313,23 +374,37 @@ export function QualificationFunnel() {
                         label="Phone Number"
                         type="tel"
                         value={form.phone}
-                        onChange={(v) => setForm({ ...form, phone: v })}
+                        onChange={(v) => {
+                          setForm({ ...form, phone: v });
+                          if (errors.phone) setErrors({ ...errors, phone: "" });
+                        }}
                         required
                         placeholder="e.g. +91 98765 43210"
+                        error={errors.phone}
                       />
                       <Field
                         label="Email ID"
                         type="email"
                         value={form.email}
-                        onChange={(v) => setForm({ ...form, email: v })}
+                        onChange={(v) => {
+                          setForm({ ...form, email: v });
+                          if (errors.email) setErrors({ ...errors, email: "" });
+                        }}
                         required
                         placeholder="e.g. rahul@outlook.com"
+                        error={errors.email}
                       />
                     </motion.div>
                   )}
 
 
                 </AnimatePresence>
+
+                {submitError && (
+                  <div className="p-4 rounded-2xl border border-red-500/20 bg-red-500/10 text-red-400 text-xs font-mono text-center">
+                    {submitError}
+                  </div>
+                )}
 
                 {/* Multistage Form Navigation Bar */}
                 <div className="flex gap-4 pt-4 border-t border-white/5">
@@ -346,8 +421,12 @@ export function QualificationFunnel() {
                   {subStep < 2 ? (
                     <button
                       type="button"
-                      disabled={!isSubStepValid(subStep)}
-                      onClick={() => setSubStep((prev) => prev + 1)}
+                      disabled={!form.name.trim() || !form.age.trim()}
+                      onClick={() => {
+                        if (validateSubStep1()) {
+                          setSubStep(2);
+                        }
+                      }}
                       className="flex-1 flex items-center justify-center gap-1.5 py-4 rounded-2xl bg-salmon text-white disabled:opacity-40 disabled:pointer-events-none hover:bg-salmon/90 shadow-[0_0_20px_rgba(255,122,89,0.2)] active:scale-95 transition-all duration-200 cursor-pointer text-xs font-bold uppercase tracking-wider"
                     >
                       Continue <ChevronRight className="h-4 w-4" />
@@ -355,10 +434,17 @@ export function QualificationFunnel() {
                   ) : (
                     <button
                       type="submit"
-                      disabled={!isSubStepValid(2)}
-                      className="flex-1 py-4 rounded-2xl bg-salmon text-white disabled:opacity-40 disabled:pointer-events-none hover:bg-salmon/90 shadow-[0_0_20px_rgba(255,122,89,0.3)] active:scale-[0.98] transition-all duration-200 cursor-pointer text-xs font-bold uppercase tracking-wider"
+                      disabled={isSubmitting || !form.phone.trim() || !form.email.trim()}
+                      className="flex-1 py-4 rounded-2xl bg-salmon text-white disabled:opacity-40 disabled:pointer-events-none hover:bg-salmon/90 shadow-[0_0_20px_rgba(255,122,89,0.3)] active:scale-[0.98] transition-all duration-200 cursor-pointer text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
                     >
-                      Apply For Assessment →
+                      {isSubmitting ? (
+                        <>
+                          <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                          Applying...
+                        </>
+                      ) : (
+                        "Apply For Assessment →"
+                      )}
                     </button>
                   )}
                 </div>
@@ -477,6 +563,7 @@ function Field({
   type = "text",
   required,
   placeholder,
+  error,
 }: {
   label: string;
   value: string;
@@ -484,13 +571,18 @@ function Field({
   type?: string;
   required?: boolean;
   placeholder?: string;
+  error?: string;
 }) {
   return (
     <div>
       <label className="label-mono text-salmon text-[10px] tracking-widest block font-bold mb-2">
         {label}
       </label>
-      <div className="relative rounded-2xl border border-white/10 bg-neutral-950/40 focus-within:border-salmon/40 focus-within:shadow-[0_0_20px_rgba(255,122,89,0.15)] transition-all duration-300">
+      <div className={`relative rounded-2xl border bg-neutral-950/40 transition-all duration-300 ${
+        error 
+          ? "border-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.15)]" 
+          : "border-white/10 focus-within:border-salmon/40 focus-within:shadow-[0_0_20px_rgba(255,122,89,0.15)]"
+      }`}>
         <input
           type={type}
           required={required}
@@ -500,6 +592,11 @@ function Field({
           className="w-full bg-transparent px-5 py-4 text-white text-sm outline-none transition placeholder-white/20"
         />
       </div>
+      {error && (
+        <span className="text-[10px] font-mono text-red-400 mt-1 block pl-2 animate-pulse">
+          {error}
+        </span>
+      )}
     </div>
   );
 }

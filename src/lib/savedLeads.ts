@@ -17,10 +17,10 @@ export async function saveLead(data: {
             createdAt: serverTimestamp(),
         });
 
-        return { success: true };
+        return true;
     } catch (error) {
-        console.error(error);
+        console.error("Firestore save error:", error);
 
-        return { success: false };
+        return false;
     }
 }
