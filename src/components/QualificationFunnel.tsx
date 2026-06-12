@@ -369,7 +369,7 @@ export function QualificationFunnel() {
             </motion.div>
           )}
 
-          {step === 4 && <Screen4 onContinue={() => setStep(5)} />}
+          {step === 4 && <Screen4 onContinue={() => setStep(5)} onExit={exit} />}
 
           {step === 5 && !submitted && (
             <motion.div
@@ -576,7 +576,36 @@ export function QualificationFunnel() {
   );
 }
 
-function Screen4({ onContinue }: { onContinue: () => void }) {
+function Screen4({ onContinue, onExit }: { onContinue: () => void; onExit: () => void }) {
+  const [showTriggerMessage, setShowTriggerMessage] = useState(false);
+
+  if (showTriggerMessage) {
+    return (
+      <motion.div
+        key="s4-trigger"
+        {...fade}
+        className="w-full text-center relative overflow-hidden rounded-3xl border border-white/15 bg-red-950/20 backdrop-blur-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] p-8 sm:p-16 max-w-xl mx-auto"
+      >
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-red-600" />
+        <h3 className="font-display text-2xl uppercase text-red-500 tracking-wider font-extrabold mb-6">
+          Access Terminated
+        </h3>
+        <p className="mt-6 font-display text-lg uppercase tracking-wider text-white font-bold leading-relaxed">
+          You are not ready to be here on this page.
+        </p>
+        <p className="mt-4 text-xs text-white/50 font-mono tracking-wider max-w-md mx-auto leading-relaxed">
+          Metabolic transformation requires absolute conviction. Half-hearted attempts yield zero results. Come back when you value your health identity.
+        </p>
+        <button
+          onClick={onExit}
+          className="mt-12 w-full max-w-md py-4 rounded-2xl bg-neutral-900 border border-white/10 text-white/60 hover:text-white hover:bg-neutral-800 transition-all duration-300 font-bold text-xs uppercase tracking-wider cursor-pointer"
+        >
+          Exit Assessment
+        </button>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       key="s4"
@@ -607,13 +636,20 @@ function Screen4({ onContinue }: { onContinue: () => void }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 3.4, duration: 0.6 }}
-        className="mt-12"
+        className="mt-12 flex flex-col items-center gap-4 w-full"
       >
         <button
           onClick={onContinue}
           className="w-full max-w-md py-4 rounded-2xl bg-salmon text-white hover:bg-salmon/90 shadow-[0_0_20px_rgba(255,122,89,0.2)] hover:shadow-[0_0_30px_rgba(255,122,89,0.35)] transition-all duration-300 transform active:scale-[0.98] font-bold text-xs uppercase tracking-wider cursor-pointer"
         >
           YES, I'M READY
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowTriggerMessage(true)}
+          className="text-xs text-white/30 font-mono tracking-widest hover:text-red-400 hover:underline transition-all duration-200 cursor-pointer mt-2"
+        >
+          I am not ready yet
         </button>
       </motion.div>
     </motion.div>
